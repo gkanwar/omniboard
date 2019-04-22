@@ -25,7 +25,7 @@ import moment from 'moment';
 
 const DEFAULT_COLUMN_WIDTH = 150;
 const DEFAULT_HEADER_HEIGHT = 50;
-const DEFAULT_ROW_HEIGHT = 70;
+const DEFAULT_ROW_HEIGHT = 50;
 const DEFAULT_EXPANDED_ROW_HEIGHT = Number(EXPANDED_ROW_HEIGHT);
 const TAGS_COLUMN_HEADER = 'tags';
 const NOTES_COLUMN_HEADER = 'notes';
@@ -127,7 +127,7 @@ class RunsTable extends Component {
       currentColumnValueOptions: [],
       isError: false,
       errorMessage: '',
-      autoReload: true,
+      autoReload: false,
       lastUpdateTime: new Date()
     }
   }
@@ -654,8 +654,8 @@ class RunsTable extends Component {
     const {tableWidth, tableHeight} = this.state;
     // Set the table width and height to occupy full viewport
     this.setState({
-      tableWidth: window.innerWidth ? window.innerWidth : tableWidth,
-      tableHeight: window.innerHeight && this.tableWrapperDomNode ? window.innerHeight - this.tableWrapperDomNode.offsetTop : tableHeight
+      tableWidth: window.innerWidth ? window.innerWidth-100 : tableWidth,
+      tableHeight: window.innerHeight && this.tableWrapperDomNode ? window.innerHeight - this.tableWrapperDomNode.offsetTop - 100 : tableHeight
     });
   };
 
