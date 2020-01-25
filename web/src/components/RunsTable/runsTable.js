@@ -300,7 +300,11 @@ class RunsTable extends Component {
             if ('host' in data) {
               const host = data['host'];
               delete data['host'];
-              data = {...data, 'hostname': host['hostname']};
+              let hostname = host['hostname'];
+              if ('username' in host) {
+                hostname = hostname + ' (' + host['username'] + ')';
+              }
+              data = {...data, 'hostname': hostname};
               const hostMap = this._getColumnNameMap(host, 'host');
               columnNameMap = {...columnNameMap, ...hostMap};
             }
