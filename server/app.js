@@ -97,7 +97,8 @@ router.get('/api/v1/files/download/:id/:fileName', function(req, res) {
   //error handling, e.g. file does not exist
   readStream.on('error', function (err) {
     console.error('An error occurred: ', err);
-    throw err;
+    res.status(500).json({message: 'Error: file does not exist.'});
+    //throw err;
   });
 
   const fileName = req.params.fileName;
@@ -150,7 +151,7 @@ router.get('/api/v1/files/downloadAll/:runId/:fileType', function(req, res) {
       archive.on('error', function(err) {
         console.error('An error occurred: ', err);
         res.status(500);
-        throw err;
+        //throw err;
       });
       files.forEach(function(file) {
         const readStream = gfs.createReadStream({
@@ -160,7 +161,7 @@ router.get('/api/v1/files/downloadAll/:runId/:fileType', function(req, res) {
         readStream.on('error', function (err) {
           console.error('An error occurred: ', err);
           res.status(500);
-          throw err;
+          //throw err;
         });
         // add file to archive
         archive.append(readStream, {name: file.name, prefix: dirName});
@@ -182,7 +183,7 @@ router.get('/api/v1/files/preview/:fileId', function(req, res) {
   //error handling, e.g. file does not exist
   readStream.on('error', function (err) {
     console.error('An error occurred: ', err);
-    throw err;
+    //throw err;
   });
 
   // Pipe the file stream to http response

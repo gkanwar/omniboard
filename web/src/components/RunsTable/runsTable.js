@@ -668,7 +668,8 @@ class RunsTable extends Component {
     // Wait for LocalStorageMixin to setState
     // and then fetch data
     setTimeout(this.loadData, 1);
-    this.interval = setTimeout(this.initPolling, POLLING_INTERVAL);
+    this._handleAutoReloadChange(this.state.autoReload);
+    // this.interval = setTimeout(this.initPolling, POLLING_INTERVAL);
   }
 
   /**
