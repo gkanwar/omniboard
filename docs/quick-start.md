@@ -23,11 +23,25 @@ omniboard -m hostname:port:database
 Replace `hostname`, `port` and `database` to connect with a running MongoDB instance where `sacred` data is stored.
 The default connection options are `localhost:27017:sacred`. 
 
-For setting more advanced connection properties, use the `--mu` option together with the Sacred database name ("sacred" in the example):
+For setting more advanced connection properties, use the `--mu` option together with a [MongoDB connection URI](https://docs.mongodb.com/manual/reference/connection-string/):
 
 ```bash
-omniboard --mu mongodb://user:pwd@host/admin?authMechanism=SCRAM-SHA-1 sacred
+omniboard --mu "mongodb://<username>:<password>@<host>/<database>[?options]"
 ```
+
+For instance, to connect with a running instance on the cloud service [MongoDB Atlas](https://www.mongodb.com/cloud/atlas), where the data is stored on the database `sacred`, you would use a command in the following form:
+
+```bash
+omniboard --mu "mongodb+srv://my-username:my-password@my-cluster-v9zjk.mongodb.net/sacred?retryWrites=true"
+```
+
+For basic authentication, start omniboard with the `-u` option:
+
+```bash
+omniboard -m hostname:port:database -u username:password:secret
+```
+
+Replace `username`, `password` and `secret` with your desired authentication information.
 
 Go to http://localhost:9000 to access omniboard.
 
@@ -122,9 +136,9 @@ Check out the [Troubleshooting Guide](https://vivekratnavel.github.io/omniboard/
 ### Metric Columns
 
 The metadata of newly created metric columns are stored in a new collection
-`omniboard.columns` in Mongodb. 
+`omniboard.metric.columns` in Mongodb. 
 
-### Config Columns
+### Custom Columns
 
-The metadata of newly added config columns are stored in a new collection
-`omniboard.config.columns` in Mongodb.
+The metadata of newly added custom columns are stored in a new collection
+`omniboard.custom.columns` in Mongodb.

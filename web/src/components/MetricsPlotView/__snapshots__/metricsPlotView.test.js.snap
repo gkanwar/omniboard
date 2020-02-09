@@ -67,53 +67,71 @@ exports[`MetricsPlotView should render correctly 1`] = `
       "selectedYAxis",
       "plotWidth",
       "plotHeight",
+      "smoothing",
     ]
   }
 >
-  <div>
+  <div
+    className="metrics-plot-view"
+  >
     <div
       className="metrics-plot-left"
     >
-      <h4>
+      <h5>
         Metrics to plot
-      </h4>
+      </h5>
       <div
         id="plot-metric-names"
       >
-        <div
-          className="checkbox"
-          key="MetricName2220"
+        <MultiSelect
+          buttonText={[Function]}
+          data={
+            Array [
+              Object {
+                "label": "pretrain.train.loss",
+                "selected": true,
+                "value": "pretrain.train.loss",
+              },
+              Object {
+                "label": "pretrain.val.loss",
+                "selected": true,
+                "value": "pretrain.val.loss",
+              },
+            ]
+          }
+          enableHTML={true}
+          id="metric_names"
+          includeSelectAllOption={true}
+          maxHeight={300}
+          multiple={true}
+          onChange={[Function]}
+          onDeselectAll={[Function]}
+          onSelectAll={[Function]}
+          selectedClass="metric-name-selected"
         >
-          <label>
-            <input
-              checked={false}
-              onChange={[Function]}
-              test-attr="plot-metric-name-0"
-              type="checkbox"
-              value="pretrain.train.loss"
-            />
-            pretrain.train.loss
-          </label>
-        </div>
-        <div
-          className="checkbox"
-          key="MetricName2221"
-        >
-          <label>
-            <input
-              checked={false}
-              onChange={[Function]}
-              test-attr="plot-metric-name-1"
-              type="checkbox"
-              value="pretrain.val.loss"
-            />
-            pretrain.val.loss
-          </label>
-        </div>
+          <select
+            data={
+              Array [
+                Object {
+                  "label": "pretrain.train.loss",
+                  "selected": true,
+                  "value": "pretrain.train.loss",
+                },
+                Object {
+                  "label": "pretrain.val.loss",
+                  "selected": true,
+                  "value": "pretrain.val.loss",
+                },
+              ]
+            }
+            id="metric_names"
+            multiple={true}
+          />
+        </MultiSelect>
       </div>
-      <h4>
+      <h5>
         X-Axis Type
-      </h4>
+      </h5>
       <div
         id="plot-x-axis-types"
       >
@@ -150,9 +168,9 @@ exports[`MetricsPlotView should render correctly 1`] = `
           </label>
         </div>
       </div>
-      <h4>
+      <h5>
         Y-Axis Type
-      </h4>
+      </h5>
       <div
         id="plot-y-axis-types"
       >
@@ -189,9 +207,279 @@ exports[`MetricsPlotView should render correctly 1`] = `
           </label>
         </div>
       </div>
-      <h4>
+      <div
+        className="smoothing-wrapper"
+      >
+        <div>
+          Smoothing: 
+          <NumericInput
+            className="smoothing-input"
+            componentClass="input"
+            format={null}
+            max={0.999}
+            min={0}
+            mobile="auto"
+            onChange={[Function]}
+            parse={null}
+            precision={null}
+            step={0.001}
+            strict={false}
+            style={Object {}}
+            value={0}
+          >
+            <span
+              className="react-numeric-input"
+              onMouseLeave={[Function]}
+              onMouseUp={[Function]}
+              style={
+                Object {
+                  "display": "inline-block",
+                  "position": "relative",
+                }
+              }
+            >
+              <input
+                className="smoothing-input"
+                onBlur={[Function]}
+                onChange={[Function]}
+                onFocus={[Function]}
+                onInput={[Function]}
+                onKeyDown={[Function]}
+                onSelect={[Function]}
+                style={
+                  Object {
+                    "WebkitAppearance": "none",
+                    "border": "1px solid #ccc",
+                    "borderRadius": 2,
+                    "boxSizing": "border-box",
+                    "display": "block",
+                    "fontSize": "inherit",
+                    "lineHeight": "normal",
+                    "paddingLeft": 4,
+                    "paddingRight": "3ex",
+                  }
+                }
+                type="text"
+                value="0"
+              />
+              <b
+                onMouseDown={[Function]}
+                onMouseEnter={[Function]}
+                onMouseLeave={[Function]}
+                onMouseUp={[Function]}
+                onTouchEnd={[Function]}
+                onTouchStart={[Function]}
+                style={
+                  Object {
+                    "background": "rgba(0,0,0,.1)",
+                    "borderColor": "rgba(0,0,0,.1)",
+                    "borderRadius": "2px 2px 0 0",
+                    "borderStyle": "solid",
+                    "borderWidth": "1px 1px 0 1px",
+                    "bottom": "50%",
+                    "boxShadow": "-1px -1px 3px rgba(0,0,0,.1) inset,1px 1px 3px rgba(255,255,255,.7) inset",
+                    "cursor": "default",
+                    "position": "absolute",
+                    "right": 2,
+                    "textAlign": "center",
+                    "top": 2,
+                    "transition": "all 0.1s",
+                    "width": "2.26ex",
+                  }
+                }
+              >
+                <i
+                  style={
+                    Object {
+                      "borderColor": "transparent transparent rgba(0, 0, 0, 0.7)",
+                      "borderStyle": "solid",
+                      "borderWidth": "0 0.6ex 0.6ex 0.6ex",
+                      "height": 0,
+                      "left": "50%",
+                      "margin": "-0.3ex 0 0 -0.56ex",
+                      "position": "absolute",
+                      "top": "50%",
+                      "width": 0,
+                    }
+                  }
+                />
+              </b>
+              <b
+                onMouseDown={[Function]}
+                onMouseEnter={[Function]}
+                onMouseLeave={[Function]}
+                onMouseUp={[Function]}
+                onTouchEnd={[Function]}
+                onTouchStart={[Function]}
+                style={
+                  Object {
+                    "background": "rgba(0,0,0,.1)",
+                    "borderColor": "rgba(0,0,0,.1)",
+                    "borderRadius": "0 0 2px 2px",
+                    "borderStyle": "solid",
+                    "borderWidth": "0 1px 1px 1px",
+                    "bottom": 2,
+                    "boxShadow": "-1px -1px 3px rgba(0,0,0,.1) inset,1px 1px 3px rgba(255,255,255,.7) inset",
+                    "cursor": "default",
+                    "position": "absolute",
+                    "right": 2,
+                    "textAlign": "center",
+                    "top": "50%",
+                    "transition": "all 0.1s",
+                    "width": "2.26ex",
+                  }
+                }
+              >
+                <i
+                  style={
+                    Object {
+                      "borderColor": "rgba(0, 0, 0, 0.7) transparent transparent",
+                      "borderStyle": "solid",
+                      "borderWidth": "0.6ex 0.6ex 0 0.6ex",
+                      "height": 0,
+                      "left": "50%",
+                      "margin": "-0.3ex 0 0 -0.56ex",
+                      "position": "absolute",
+                      "top": "50%",
+                      "width": 0,
+                    }
+                  }
+                />
+              </b>
+            </span>
+          </NumericInput>
+        </div>
+        <ComponentEnhancer(undefined)
+          activeDotStyle={Object {}}
+          className="smoothing-slider"
+          disabled={false}
+          dotStyle={Object {}}
+          dots={false}
+          handle={[Function]}
+          handleStyle={
+            Array [
+              Object {},
+            ]
+          }
+          included={true}
+          marks={Object {}}
+          max={0.999}
+          min={0}
+          onAfterChange={[Function]}
+          onBeforeChange={[Function]}
+          onChange={[Function]}
+          prefixCls="rc-slider"
+          railStyle={Object {}}
+          step={0.001}
+          test-attr="plot-smoothing-slider"
+          trackStyle={
+            Array [
+              Object {},
+            ]
+          }
+          value={0}
+          vertical={false}
+        >
+          <div
+            className="rc-slider smoothing-slider"
+            onBlur={[Function]}
+            onFocus={[Function]}
+            onKeyDown={[Function]}
+            onMouseDown={[Function]}
+            onMouseUp={[Function]}
+            onTouchStart={[Function]}
+          >
+            <div
+              className="rc-slider-rail"
+              style={Object {}}
+            />
+            <Track
+              className="rc-slider-track"
+              included={true}
+              length={0}
+              offset={0}
+              style={Object {}}
+              vertical={false}
+            >
+              <div
+                className="rc-slider-track"
+                style={
+                  Object {
+                    "left": "0%",
+                    "width": "0%",
+                  }
+                }
+              />
+            </Track>
+            <Steps
+              activeDotStyle={Object {}}
+              dotStyle={Object {}}
+              dots={false}
+              included={true}
+              lowerBound={0}
+              marks={Object {}}
+              max={0.999}
+              min={0}
+              prefixCls="rc-slider"
+              step={0.001}
+              upperBound={0}
+              vertical={false}
+            >
+              <div
+                className="rc-slider-step"
+              />
+            </Steps>
+            <Handle
+              className="rc-slider-handle"
+              disabled={false}
+              key="0"
+              max={0.999}
+              min={0}
+              offset={0}
+              prefixCls="rc-slider"
+              style={Object {}}
+              value={0}
+              vertical={false}
+            >
+              <div
+                aria-disabled={false}
+                aria-valuemax={0.999}
+                aria-valuemin={0}
+                aria-valuenow={0}
+                className="rc-slider-handle"
+                onBlur={[Function]}
+                onKeyDown={[Function]}
+                onMouseDown={[Function]}
+                role="slider"
+                style={
+                  Object {
+                    "left": "0%",
+                  }
+                }
+                tabIndex={0}
+              />
+            </Handle>
+            <Marks
+              className="rc-slider-mark"
+              included={true}
+              lowerBound={0}
+              marks={Object {}}
+              max={0.999}
+              min={0}
+              onClickLabel={[Function]}
+              upperBound={0}
+              vertical={false}
+            >
+              <div
+                className="rc-slider-mark"
+              />
+            </Marks>
+          </div>
+        </ComponentEnhancer(undefined)>
+      </div>
+      <h5>
         Plot Size
-      </h4>
+      </h5>
       <div
         id="plot-size"
       >
@@ -308,6 +596,7 @@ exports[`MetricsPlotView should render correctly 1`] = `
                   className="rc-slider-handle"
                   onBlur={[Function]}
                   onKeyDown={[Function]}
+                  onMouseDown={[Function]}
                   role="slider"
                   style={
                     Object {
@@ -448,6 +737,7 @@ exports[`MetricsPlotView should render correctly 1`] = `
                   className="rc-slider-handle"
                   onBlur={[Function]}
                   onKeyDown={[Function]}
+                  onMouseDown={[Function]}
                   role="slider"
                   style={
                     Object {
@@ -481,27 +771,130 @@ exports[`MetricsPlotView should render correctly 1`] = `
       className="metrics-plot-content"
     >
       <PlotlyComponent
-        data={Array []}
+        data={
+          Array [
+            Object {
+              "hoverinfo": "none",
+              "marker": Object {
+                "color": "#1f77b4",
+              },
+              "mode": "lines+points",
+              "name": "222.pretrain.train.loss.unsmoothed",
+              "opacity": 0.2,
+              "showlegend": false,
+              "type": "scatter",
+              "x": Array [
+                0,
+                1,
+                2,
+                3,
+                4,
+              ],
+              "y": Array [
+                0.7159541824544438,
+                0.3840367944955761,
+                0.3469185283233073,
+                0.30483262065173106,
+                0.28915774130337507,
+              ],
+            },
+            Object {
+              "marker": Object {
+                "color": "#1f77b4",
+              },
+              "mode": "lines+points",
+              "name": "222.pretrain.train.loss",
+              "opacity": 1,
+              "type": "scatter",
+              "x": Array [
+                0,
+                1,
+                2,
+                3,
+                4,
+              ],
+              "y": Array [
+                0.7159541824544438,
+                0.3840367944955761,
+                0.3469185283233073,
+                0.30483262065173106,
+                0.28915774130337507,
+              ],
+            },
+            Object {
+              "hoverinfo": "none",
+              "marker": Object {
+                "color": "#2ca02c",
+              },
+              "mode": "lines+points",
+              "name": "223.pretrain.val.loss.unsmoothed",
+              "opacity": 0.2,
+              "showlegend": false,
+              "type": "scatter",
+              "x": Array [
+                0,
+                1,
+                2,
+                3,
+                4,
+              ],
+              "y": Array [
+                0.32177006650114165,
+                0.23237958704995795,
+                0.23340759051386187,
+                0.21925230575196739,
+                0.20541178824900605,
+              ],
+            },
+            Object {
+              "marker": Object {
+                "color": "#2ca02c",
+              },
+              "mode": "lines+points",
+              "name": "223.pretrain.val.loss",
+              "opacity": 1,
+              "type": "scatter",
+              "x": Array [
+                0,
+                1,
+                2,
+                3,
+                4,
+              ],
+              "y": Array [
+                0.32177006650114165,
+                0.23237958704995795,
+                0.23340759051386187,
+                0.21925230575196739,
+                0.20541178824900605,
+              ],
+            },
+          ]
+        }
         debug={false}
         fit={false}
         layout={
           Object {
             "height": 400,
-            "title": "Metrics Plot",
+            "title": Object {
+              "text": "Metrics Plot",
+            },
             "width": 800,
             "xaxis": Object {
               "autorange": true,
               "range": Array [
-                -1,
-                6,
+                0,
+                4,
               ],
+              "type": "linear",
             },
             "yaxis": Object {
               "autorange": true,
               "range": Array [
-                -1,
-                4,
+                0.1770483219042595,
+                0.7443176487991903,
               ],
+              "type": "linear",
             },
           }
         }
