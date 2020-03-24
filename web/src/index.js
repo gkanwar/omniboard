@@ -1,11 +1,12 @@
-import ReactDOM from 'react-dom';
-import {AppContainer} from 'react-hot-loader';
+import {render} from 'react-dom';
 import React, {setGlobal} from 'reactn';
 import 'react-table/react-table.css';
 import 'bootstrap/dist/css/bootstrap.css';
 import 'react-bootstrap-multiselect/css/bootstrap-multiselect.css';
 import './components/RunsTable/runsTable.scss';
 import 'rc-slider/assets/index.css';
+// eslint-disable-next-line import/extensions
+import 'regenerator-runtime/runtime.js';
 
 import NextApp from './routes';
 import {
@@ -32,15 +33,4 @@ setGlobal({
 });
 
 const rootEl = document.querySelector('#root');
-ReactDOM.render(<AppContainer><NextApp/></AppContainer>, rootEl);
-
-if (module.hot) {
-  module.hot.accept('./routes', () => {
-    ReactDOM.render(
-      <AppContainer>
-        <NextApp/>
-      </AppContainer>,
-      rootEl
-    );
-  });
-}
+render(<NextApp/>, rootEl);

@@ -14,6 +14,7 @@ import PropTypes from 'prop-types';
 import Switch from 'react-switch';
 import moment from 'moment';
 import classNames from 'classnames';
+import * as QueryString from 'query-string';
 import ms from 'ms';
 import {MetricColumnModal} from '../MetricColumnModal/metricColumnModal';
 import {DataListWrapper} from '../Helpers/dataListWrapper';
@@ -21,13 +22,14 @@ import {EditableCell, SelectCell, ExpandRowCell, TextCell, CollapseCell, HeaderC
   SortTypes, StatusCell, IdCell, DateCell, PendingCell, SelectionCell, SelectionHeaderCell} from '../Helpers/cells';
 import {DrillDownView} from '../DrillDownView/drillDownView';
 import {EXPANDED_ROW_HEIGHT} from '../DrillDownView/drillDownView.scss';
-import {headerText, reorderArray, capitalize, parseServerError, arrayDiffColumns} from '../Helpers/utils';
+import {headerText, reorderArray, capitalize, parseServerError, arrayDiffColumns, resolveObjectPath} from '../Helpers/utils';
 import {STATUS} from '../../appConstants/status.constants';
 import {ProgressWrapper} from '../Helpers/hoc';
 import {CustomColumnModal} from '../CustomColumnModal/customColumnModal';
 import {AUTO_REFRESH_INTERVAL, INITIAL_FETCH_SIZE, ROW_HEIGHT} from '../../appConstants/app.constants';
 import {SettingsModal} from '../SettingsModal/settingsModal';
 import {CompareRunsModal} from '../CompareRunsModal/compareRunsModal';
+import {DeleteRunsConfirmationModal} from '../DeleteRunsConfirmationModal/deleteRunsConfirmationModal';
 
 export const DEFAULT_COLUMN_WIDTH = 150;
 const DEFAULT_HEADER_HEIGHT = 50;
@@ -109,7 +111,13 @@ class RunsTable extends Component {
     showCustomColumnModal: PropTypes.bool.isRequired,
     handleCustomColumnModalClose: PropTypes.func.isRequired,
     showSettingsModal: PropTypes.bool.isRequired,
-    handleSettingsModalClose: PropTypes.func.isRequired
+    handleSettingsModalClose: PropTypes.func.isRequired,
+    location: PropTypes.shape({
+      search: PropTypes.string
+    }),
+    history: PropTypes.shape({
+      push: PropTypes.func
+    })
   };
 
   tableWrapperDomNode = null;
@@ -169,7 +177,12 @@ class RunsTable extends Component {
       newData: null,
       dataVersion: 0,
       isCompareButtonDisabled: true,
-      showCompareColumnsModal: false
+      showCompareColumnsModal: false,
+      isDeleteButtonDisabled: true,
+      showDeleteConfirmationModal: false,
+      isDeleteInProgress: false,
+      deleteProgress: 0,
+      rowsToDelete: []
     };
   }
 
@@ -181,10 +194,6 @@ class RunsTable extends Component {
   };
 
   _getInitialFetchSize = () => Number(this.global.settings[INITIAL_FETCH_SIZE].value);
-
-  _resolveObjectPath = (object, path, defaultValue) => path
-    .split('.')
-    .reduce((o, p) => o && Object.prototype.hasOwnProperty.call(o, p) ? o[p] : defaultValue, object);
 
   _initPolling = () => {
     this.loadPartialUpdates();
@@ -215,8 +224,8 @@ class RunsTable extends Component {
   _buildRunsQuery = (metricColumnsData, customColumnsData, end = null) => {
     const {filters, dropdownOptions, columnNameMap, sort} = this.state;
     const queryJson = {$and: []};
-    const statusQueryFilter = operator => status => {
-      return {status: {[operator]: status}};
+    const buildQueryFilter = (operator, key) => value => {
+      return {[key]: {[operator]: value}};
     };
 
     // Get default initial fetch count from global settings.
@@ -228,7 +237,7 @@ class RunsTable extends Component {
     let order_by = '-1'; // Default order by DESC
 
     if (filters && filters.status.length > 0) {
-      const statusFilter = filters.status.map(statusQueryFilter('$eq'));
+      const statusFilter = filters.status.map(buildQueryFilter('$eq', 'status'));
       queryJson.$and.push({$or: statusFilter});
     }
 
@@ -236,7 +245,15 @@ class RunsTable extends Component {
     if (filters && filters.advanced.length > 0) {
       filters.advanced.forEach(filter => {
         if (filter.operator === '$in') {
-          const orFilters = filter.name === 'status' ? filter.value.map(statusQueryFilter('$eq')) : [{[filter.name]: filter.value}];
+          let orFilters = [{[filter.name]: filter.value}];
+          if (filter.name === 'status') {
+            orFilters = filter.value.map(buildQueryFilter('$eq', filter.name));
+          } else if (filter.name === 'config.tags' || filter.name === 'omniboard.tags') {
+            const orFilters1 = buildQueryFilter('$in', 'config.tags')(filter.value);
+            const orFilters2 = buildQueryFilter('$in', 'omniboard.tags')(filter.value);
+            orFilters = [orFilters1, orFilters2];
+          }
+
           queryJson.$and.push({$or: orFilters});
         } else {
           // Check if the value is a number or boolean and convert type accordingly
@@ -251,7 +268,7 @@ class RunsTable extends Component {
           }
 
           if (filter.name === 'status') {
-            queryJson.$and.push(statusQueryFilter(filter.operator)(value));
+            queryJson.$and.push(buildQueryFilter(filter.operator, filter.name)(value));
           } else if (filter.name === 'config.tags' || filter.name === 'omniboard.tags') {
             queryJson.$and.push({$or: [{'config.tags': {[filter.operator]: filter.value}}, {'omniboard.tags': {[filter.operator]: filter.value}}]});
           } else if (filter.name === 'omniboard.notes') {
@@ -362,7 +379,7 @@ class RunsTable extends Component {
         customColumnsData.forEach(column => {
           const columnName = column.name;
           const configPath = column.config_path;
-          customColumnsObject[columnName] = this._resolveObjectPath(data, configPath, '');
+          customColumnsObject[columnName] = resolveObjectPath(data, configPath, '');
           customColumnNameMap[columnName] = configPath;
         });
         data = {...data, ...customColumnsObject};
@@ -924,6 +941,13 @@ class RunsTable extends Component {
         this._startPolling();
       }
     }, 1);
+    this._parseQueryString();
+  }
+
+  componentDidUpdate(prevProps, _prevState, _snapshot) {
+    if (prevProps.location.search !== this.props.location.search) {
+      this._parseQueryString();
+    }
   }
 
   /**
@@ -978,7 +1002,7 @@ class RunsTable extends Component {
       isCompareButtonDisabled = true;
       isDeleteButtonDisabled = true;
     } else {
-      isDeleteButtonDisabled = false;
+      isDeleteButtonDisabled = selectedRows.size < 2;
       // Only enable compare when 2 or more runs are selected
       isCompareButtonDisabled = selectedRows.size < 2;
     }
@@ -989,18 +1013,12 @@ class RunsTable extends Component {
     });
   };
 
-  _handleRowSelectionClick = rowIndex => {
-    const {selectedRows} = this.state;
-    const shallowCopyOfSelectedRows = new Set([...selectedRows]);
+  _selectRows = (rows, checkAll, checkAllIndeterminate) => {
+    const selectedRows = new Set(rows);
     let selectAll = null;
     let selectAllIndeterminate = null;
-    if (shallowCopyOfSelectedRows.has(rowIndex)) {
-      shallowCopyOfSelectedRows.delete(rowIndex);
-    } else {
-      shallowCopyOfSelectedRows.add(rowIndex);
-    }
 
-    if (shallowCopyOfSelectedRows.size === 0) {
+    if (selectedRows.size === 0) {
       selectAll = false;
       selectAllIndeterminate = false;
     } else {
@@ -1008,11 +1026,54 @@ class RunsTable extends Component {
       selectAllIndeterminate = true;
     }
 
+    if (checkAll !== undefined && checkAllIndeterminate !== undefined) {
+      selectAll = checkAll === 'true';
+      selectAllIndeterminate = checkAllIndeterminate === 'true';
+    }
+
     this.setState({
-      selectedRows: shallowCopyOfSelectedRows,
+      selectedRows,
       selectAll,
       selectAllIndeterminate
-    }, () => this._updateStateForMultiSelectButtons(shallowCopyOfSelectedRows));
+    }, () => this._updateStateForMultiSelectButtons(selectedRows));
+  };
+
+  _parseQueryString = () => {
+    const queryString = QueryString.parse(this.props.location.search);
+    if (queryString.selectedRows) {
+      this._selectRows(JSON.parse(queryString.selectedRows), queryString.selectAll, queryString.selectAllIndeterminate);
+    }
+
+    if (queryString.showCompareModal) {
+      this.setState({
+        showCompareColumnsModal: queryString.showCompareModal === 'true'
+      });
+    }
+  };
+
+  /**
+   * Updates the query string in URL.
+   *
+   * @param {object} queries queryString object
+   * @private
+   */
+  _updateQueryString = queries => {
+    const queryString = QueryString.parse(this.props.location.search);
+    const updatedQueryString = {...queryString, ...queries};
+    this.props.history.push('?' + QueryString.stringify(updatedQueryString));
+  };
+
+  _handleRowSelectionClick = rowIndex => {
+    const {selectedRows} = this.state;
+    const shallowCopyOfSelectedRows = new Set([...selectedRows]);
+
+    if (shallowCopyOfSelectedRows.has(rowIndex)) {
+      shallowCopyOfSelectedRows.delete(rowIndex);
+    } else {
+      shallowCopyOfSelectedRows.add(rowIndex);
+    }
+
+    this._updateQueryString({selectedRows: JSON.stringify([...shallowCopyOfSelectedRows])});
   };
 
   _handleSelectAllClick = checkAll => {
@@ -1022,11 +1083,12 @@ class RunsTable extends Component {
       selectedRows = new Set(data.map((_, i) => i));
     }
 
-    this.setState({
-      selectedRows,
+    const queryString = {
+      selectedRows: JSON.stringify([...selectedRows]),
       selectAll: checkAll,
       selectAllIndeterminate: false
-    }, () => this._updateStateForMultiSelectButtons(selectedRows));
+    };
+    this._updateQueryString(queryString);
   };
 
   _subRowHeightGetter = index => {
@@ -1080,8 +1142,8 @@ class RunsTable extends Component {
 
     if (columnKey === ID_COLUMN_KEY) {
       cell = (
-        <PendingCell data={rowData} dataVersion={dataVersion} handleDataUpdate={this._handleDeleteExperimentRun}>
-          <IdCell/>
+        <PendingCell data={rowData} dataVersion={dataVersion}>
+          <IdCell handleDelete={this._handleDeleteRunsClick}/>
         </PendingCell>
       );
     }
@@ -1124,8 +1186,13 @@ class RunsTable extends Component {
   };
 
   _handleCompareRunsClick = () => {
+    this._updateQueryString({showCompareModal: true});
+  };
+
+  _handleDeleteRunsClick = rowsToDelete => () => {
     this.setState({
-      showCompareColumnsModal: true
+      showDeleteConfirmationModal: true,
+      rowsToDelete
     });
   };
 
@@ -1172,8 +1239,12 @@ class RunsTable extends Component {
   };
 
   _handleCompareColumnsModalClose = () => {
+    this._updateQueryString({showCompareModal: false});
+  };
+
+  _handleDeleteRunsModalClose = () => {
     this.setState({
-      showCompareColumnsModal: false
+      showDeleteConfirmationModal: false
     });
   };
 
@@ -1354,7 +1425,7 @@ class RunsTable extends Component {
     };
   };
 
-  _handleDeleteExperimentRun = runId => {
+  _handlePostDeleteRun = runId => {
     const {sortedData, runsCount} = this.state;
     const data = sortedData.getDataArray();
     const index = data.findIndex(item => item._id === runId);
@@ -1365,10 +1436,133 @@ class RunsTable extends Component {
       const newData = new DataListWrapper(data, newRunsCount, this._getInitialFetchSize, this._fetchRunsRange);
       // Reset expanded rows
       this._resetExpandedRows();
+      this._resetSelectedRows();
       this.setState({
         data,
         sortedData: newData,
         runsCount: newRunsCount
+      });
+    }
+  };
+
+  _handleDeleteRuns = experimentIds => e => {
+    e.stopPropagation();
+
+    const buildChunksQuery = chunksQuery => {
+      return axios.delete('/api/v1/Fs.chunks/', {
+        params: {
+          query: JSON.stringify({
+            $or: chunksQuery
+          })
+        }
+      });
+    };
+
+    const buildFilesQuery = filesQuery => {
+      return axios.delete('/api/v1/Fs.files/', {
+        params: {
+          query: JSON.stringify({
+            $or: filesQuery
+          })
+        }
+      });
+    };
+
+    if (experimentIds && experimentIds.length > 0) {
+      this.setState({
+        isDeleteInProgress: true
+      });
+      let deletedCount = 0;
+      const totalCount = experimentIds.length;
+      experimentIds.forEach(experimentId => {
+        if (experimentId && !isNaN(experimentId)) {
+          axios.all([
+            axios.get('/api/v1/Runs/' + experimentId, {
+              params: {
+                select: 'artifacts,experiment.sources'
+              }
+            }),
+            axios.get('/api/v1/SourceFilesCount/' + experimentId)
+          ]).then(axios.spread(async (runsResponse, sourceFilesCountResponse) => {
+            runsResponse = runsResponse.data;
+            sourceFilesCountResponse = sourceFilesCountResponse.data;
+            const deleteApis = [];
+
+            // Since deletes are idempotent, delete all metric rows
+            // from metrics collection associated with the given run id
+            // without checking if metric rows are present or not.
+            deleteApis.push(
+              axios.delete('/api/v1/Metrics/', {
+                params: {
+                  query: JSON.stringify({
+                    run_id: experimentId
+                  })
+                }
+              }));
+
+            // Delete all artifacts associated with the run id.
+            if (runsResponse.artifacts && runsResponse.artifacts.length > 0) {
+              const chunksQuery = runsResponse.artifacts.map(file => {
+                return {files_id: file.file_id};
+              });
+              const filesQuery = runsResponse.artifacts.map(file => {
+                return {_id: file.file_id};
+              });
+              deleteApis.push(buildChunksQuery(chunksQuery));
+              deleteApis.push(buildFilesQuery(filesQuery));
+            }
+
+            // Delete all source files associated with run id
+            // only if the source file is not being used by any other run.
+            if (sourceFilesCountResponse && sourceFilesCountResponse.length > 0) {
+              // Filter files that have count as 1.
+              // i.e The source file is not being used by any other run.
+              const sourceFilesToDelete = sourceFilesCountResponse.filter(item => item.count === 1);
+              if (sourceFilesToDelete.length > 0) {
+                const chunksQuery = sourceFilesToDelete.map(file => {
+                  return {files_id: file._id};
+                });
+                const filesQuery = sourceFilesToDelete.map(file => {
+                  return {_id: file._id};
+                });
+                deleteApis.push(buildChunksQuery(chunksQuery));
+                deleteApis.push(buildFilesQuery(filesQuery));
+              }
+            }
+
+            // Delete run.
+            deleteApis.push(
+              axios.delete('/api/v1/Runs/' + experimentId)
+            );
+
+            await axios.all(deleteApis).then(axios.spread((...deleteResponses) => {
+              if (deleteResponses.every(response => response.status === 204)) {
+                // Call callback function to update rows in the table
+                this._handlePostDeleteRun(experimentId);
+                toast.success(`Experiment run ${experimentId} was deleted successfully!`, {autoClose: 5000});
+              } else {
+                toast.error('An unknown error occurred!', {autoClose: 5000});
+              }
+            })).catch(error => {
+              toast.error(parseServerError(error), {autoClose: 5000});
+            });
+          })).catch(error => {
+            toast.error(parseServerError(error), {autoClose: 5000});
+          });
+        }
+        // Update delete progress
+
+        deletedCount++;
+        const progress = Math.ceil(deletedCount / totalCount * 100);
+        this.setState({
+          deleteProgress: progress
+        });
+      });
+
+      this.setState({
+        isDeleteInProgress: false,
+        showDeleteConfirmationModal: false,
+        deleteProgress: 0
       });
     }
   };
@@ -1447,7 +1641,8 @@ class RunsTable extends Component {
       errorMessage, isTableLoading, filterColumnName, filterColumnOperator, filterColumnValue, filterValueAsyncValueOptionsKey,
       filters, currentColumnValueOptions, columnNameMap, filterOperatorAsyncValueOptionsKey, autoRefresh,
       lastUpdateTime, isFetchingUpdates, runsCount, dataVersion, newRunsCount, selectedRows, selectAll,
-      selectAllIndeterminate, isCompareButtonDisabled, showCompareColumnsModal} = this.state;
+      selectAllIndeterminate, isCompareButtonDisabled, showCompareColumnsModal, rowsToDelete,
+      isDeleteButtonDisabled, showDeleteConfirmationModal, isDeleteInProgress, deleteProgress} = this.state;
     const {showCustomColumnModal, handleCustomColumnModalClose, showSettingsModal, handleSettingsModalClose} = this.props;
     const rowHeight = Number(this.global.settings[ROW_HEIGHT].value);
     if (sortedData && sortedData.getSize()) {
@@ -1476,7 +1671,14 @@ class RunsTable extends Component {
       });
     }
 
-    const compareRuns = [...selectedRows].map(rowIndex => sortedData.getDataArray()[rowIndex]._id);
+    const compareRuns = sortedData && sortedData.getSize() > 0 ?
+      [...selectedRows].reduce((rows, rowIndex) => {
+        if (sortedData.getDataArray()[rowIndex]) {
+          rows.push(sortedData.getDataArray()[rowIndex]._id);
+        }
+
+        return rows;
+      }, []) : [];
     const getSelectValue = (options, value) => {
       const selectValue = options.find(option => option.value === value);
       return selectValue ? selectValue : value ? {label: value, value} : '';
@@ -1623,6 +1825,13 @@ class RunsTable extends Component {
                   >
                     <Glyphicon glyph='transfer'/> Compare
                   </Button>
+                  <Button id='delete_runs'
+                    bsStyle='danger'
+                    disabled={isDeleteButtonDisabled}
+                    onClick={this._handleDeleteRunsClick(compareRuns)}
+                  >
+                    <Glyphicon glyph='trash'/> Delete
+                  </Button>
                 </div>
               </ButtonToolbar>
               <div className='clearfix'/>
@@ -1738,6 +1947,9 @@ class RunsTable extends Component {
           handleAutoRefreshUpdate={this._handleAutoRefreshUpdate} handleInitialFetchSizeUpdate={this.loadData}/>
         <CompareRunsModal shouldShow={showCompareColumnsModal} handleClose={this._handleCompareColumnsModalClose}
           runs={compareRuns}/>
+        <DeleteRunsConfirmationModal handleClose={this._handleDeleteRunsModalClose}
+          shouldShow={showDeleteConfirmationModal} runs={rowsToDelete} isDeleteInProgress={isDeleteInProgress}
+          handleDelete={this._handleDeleteRuns(rowsToDelete)} progressPercent={deleteProgress}/>
       </div>
     );
   }
